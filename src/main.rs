@@ -19,7 +19,7 @@ fn main() {
 
     let event_loop = EventLoop::new();                     // Create event loop
     let window_builder = WindowBuilder::new()              // Set window attributes 
-        .with_title("This took me just like 10 hours ~ OpenGL");
+        .with_title("This took me just like 20 hours ~ OpenGL");
         //.with_inner_size(PhysicalSize::new())
 
     let context = ContextBuilder::new()
@@ -45,13 +45,13 @@ fn main() {
         // ─── VERTEX INPUT ────────────────────────────────────────────────
         //
 
-        type Vertex = [f32; 6];
+        type Vertex = [f32; 8];
         let vertices: [Vertex; 4] = [ // Rectangle
-            // Positions         // Colors
-            [  0.5,  0.5,  0.0,  1.0, 0.0, 0.0  ], // Top-right corner
-            [  0.5, -0.5,  0.0,  0.0, 1.0, 0.0  ], // Bottom-right corner
-            [ -0.5, -0.5,  0.0,  0.0, 0.0, 1.0  ], // Bottom-left corner
-            [ -0.5,  0.5,  0.0,  1.1, 1.1, 1.1  ], // Top-left corner
+            // Positions         // Colors       // Texture coordinates
+            [  0.5,  0.5,  0.0,  1.0, 0.0, 0.0,  1.0, 0.0  ], // Top-right corner
+            [  0.5, -0.5,  0.0,  0.0, 1.0, 0.0,  1.0, 1.0  ], // Bottom-right corner
+            [ -0.5, -0.5,  0.0,  0.0, 0.0, 1.0,  0.0, 1.0  ], // Bottom-left corner
+            [ -0.5,  0.5,  0.0,  1.1, 1.1, 1.1,  0.0, 0.0  ], // Top-left corner
         ];
 
         let indices: [u32; 6] = [
@@ -129,7 +129,7 @@ fn main() {
 
         // Color attribute
         glVertexAttribPointer( // Linking vertex attributes
-            1,                 // In vertex shader (location = 0)
+            1,                 // In vertex shader (location = 1)
             3,                 // Size of vertex attribute. vec3 => 3 values
             GL_FLOAT,
             0,                 // If 1 is supplied tha data will be normalized between 0.0 and 1.0
@@ -137,6 +137,97 @@ fn main() {
             (3 * size_of::<f32>()) as *const _      // Offset
         );
         glEnableVertexAttribArray(1); // Enable attribute
+
+        // Texture coordinates attribute
+        glVertexAttribPointer(
+            2,                 // In vertex shader (location = 2)
+            2,                 // Size of vertex attribute. vec2 => 2 values
+            GL_FLOAT,
+            0,                 // If 1 is supplied tha data will be normalized between 0.0 and 1.0
+            vertex_size,       // Stride - https://shorturl.me/GyNm - here size of one vertex
+            (6 * size_of::<f32>()) as *const _      // Offset
+                                                    // 0     3     6   8
+                                                    // |-----|-----|---|
+                                                    //    |     |    |
+                                                    //   pos  color texture
+        );
+        glEnableVertexAttribArray(2); // Enable attribute
+
+
+        //
+        // ─── TEXTURE ─────────────────────────────────────────────────────
+        //
+
+        let border_color: [f32; 4] = [ 1.0, 0.0, 0.0, 1.0 ];    
+
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color.as_ptr().cast());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT.0 as i32);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT.0 as i32);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST.0 as i32);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR.0 as i32);
+
+        // Loading image
+        let car_img = {
+            let img_bytes = include_bytes!("images/car.png");
+            let cursor = std::io::Cursor::new(img_bytes);
+            let decoder = png::Decoder::new(cursor);
+
+            let (info, mut reader) = decoder.read_info().expect("You are using JPEG againg, aren't you");
+            let buf_size = (info.width * info.height) as usize * 4;
+            let mut img_data = vec![0; buf_size];
+            reader.next_frame(&mut img_data).unwrap();
+            (img_data, info)
+        };
+
+        let other_img = {
+            let img_bytes = include_bytes!("images/img.png");
+            let cursor = std::io::Cursor::new(img_bytes);
+            let decoder = png::Decoder::new(cursor);
+
+            let (info, mut reader) = decoder.read_info().expect("You are using JPEG againg, aren't you");
+            let buf_size = (info.width * info.height) as usize * 4;
+            let mut img_data = vec![0; buf_size];
+            reader.next_frame(&mut img_data).unwrap();
+            (img_data, info)
+        };
+            
+        // Generating texture
+        let mut texture1 = 0u32;
+        let mut texture2 = 0u32;
+        glGenTextures(1, &mut texture1);
+        glGenTextures(1, &mut texture2);
+
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glTexImage2D(
+            GL_TEXTURE_2D,              // Texture type TEXTURE_3D AND TEXTURE_1D arent affected.
+            0,                          // Mipmap level 0 => base level
+            0x1908, // GL_RGBA          // Format for storing the texture
+            car_img.1.width as i32,     // Image width
+            car_img.1.height as i32,    // Image height
+            0,                          // Some legacy shit => always 0
+            GL_RGB,                     // Image color format
+            GL_UNSIGNED_BYTE,           // Image datatype; this one is stored as bytes
+            car_img.0.as_ptr().cast()   // Image data
+        );
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+        glTexImage2D(
+            GL_TEXTURE_2D,              // Texture type TEXTURE_3D AND TEXTURE_1D arent affected.
+            0,                          // Mipmap level 0 => base level
+            GL_RGBA.0 as i32,           // Format for storing the texture
+            other_img.1.width as i32,   // Image width
+            other_img.1.height as i32,  // Image height
+            0,                          // Some legacy shit => always 0
+            GL_RGB,                     // Image color format
+            GL_UNSIGNED_BYTE,           // Image datatype; this one is stored as bytes
+            other_img.0.as_ptr().cast() // Image data
+        );
+        glGenerateMipmap(GL_TEXTURE_2D);
 
 
         //
@@ -156,6 +247,7 @@ fn main() {
         println!(">> {}", attrib_num);
         */
 
+        // Shader program
         let shader_program = Shader::new("shaders/vertex.vert", "shaders/fragment.frag");
 
         //
@@ -202,10 +294,17 @@ fn main() {
                     glClear(GL_COLOR_BUFFER_BIT);
 
                     
-                    //glUseProgram(shader_program); // Activate shader program
+                    /*glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, texture1);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, texture2);*/
+
                     
                     shader_program.use_shader();
+                    shader_program.set_int("texture1", 0);
+                    shader_program.set_int("texture2", 1);
                     
+
                     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
                     glDrawElements(
                         GL_TRIANGLES,         // Drawing mode
