@@ -8,6 +8,8 @@ use std::mem::{size_of, size_of_val};
 use gl33::global_loader::*;
 use gl33::*;
 
+use nalgebra::{Matrix4, Rotation3, Vector, Vector3};
+
 mod shader;
 use shader::Shader;
 
@@ -19,7 +21,7 @@ fn main() {
 
     let event_loop = EventLoop::new();                     // Create event loop
     let window_builder = WindowBuilder::new()              // Set window attributes 
-        .with_title("This took me just like 20 hours ~ OpenGL");
+        .with_title("This took me just like 25 hours ~ OpenGL");
         //.with_inner_size(PhysicalSize::new())
 
     let context = ContextBuilder::new()
@@ -231,6 +233,14 @@ fn main() {
 
 
         //
+        // ─── SHADERS ─────────────────────────────────────────────────────
+        //
+
+        // Shader program
+        let shader_program = Shader::new("shaders/vertex.vert", "shaders/fragment.frag");
+
+
+        //
         // ─── ETC ─────────────────────────────────────────────────────────
         //
 
@@ -247,13 +257,12 @@ fn main() {
         println!(">> {}", attrib_num);
         */
 
-        // Shader program
-        let shader_program = Shader::new("shaders/vertex.vert", "shaders/fragment.frag");
 
         //
         // ─── EVENT LOOP ──────────────────────────────────────────────────
         //
 
+        let t0 = std::time::Instant::now();
         event_loop.run(move |event, _, control_flow| {
             match event {
                 //
@@ -291,19 +300,49 @@ fn main() {
 
                 Event::RedrawEventsCleared => {
                     // Clear color buffer
-                    glClear(GL_COLOR_BUFFER_BIT);
-
-                    
-                    /*glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, texture1);
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, texture2);*/
-
+                    glClear(GL_COLOR_BUFFER_BIT);                    
                     
                     shader_program.use_shader();
+
+
+                    //
+                    // TEXTURES
+                    //
+
                     shader_program.set_int("texture1", 0);
                     shader_program.set_int("texture2", 1);
                     
+
+                    //
+                    // TRANSFORMATION
+                    //
+
+                    // Transformation base => identity matrix
+                    let base = Matrix4::<f32>::identity();
+                    
+                    // Rotation around Z axis Pi/2 rad (90°)
+                    let rotation = Rotation3::from_axis_angle(
+                        &Vector3::z_axis(),
+                        std::f32::consts::PI / 2.0
+                    ).to_homogeneous();
+                    
+                    // Scaling
+                    let scale = Matrix4::new_scaling(1.0);
+
+                    // Translation
+                    //let view_matrix = Matrix4::new_nonuniform_scaling(&Vector::from([4.0, 4.0, 0.0]));
+                    let x = t0.elapsed().as_secs_f32().sin() * 0.5;
+                    let y = t0.elapsed().as_secs_f32().cos() * 0.5;
+                    let translation = Matrix4::new_translation(&Vector::from([x, y, 0.0]));
+
+                    // Together
+                    let final_transformation = base * rotation * scale * translation;//; * view_matrix);
+
+                    let transform_location = glGetUniformLocation(shader_program.id, "transform\0".as_ptr());
+                    if transform_location == -1 { panic!("damn") }
+                    glUniformMatrix4fv(transform_location, 1, 0, final_transformation.as_ptr());
+
+
 
                     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
                     glDrawElements(

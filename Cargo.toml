@@ -10,3 +10,4 @@ edition = "2018"
 gl33 = { version = "0.2.1", features = ["global_loader"] }
 glutin = "0.26.0"
 png = "0.16.8"
+nalgebra = "0.25.3"

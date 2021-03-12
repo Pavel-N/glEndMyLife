@@ -1,15 +1,17 @@
 #![allow(dead_code)] // XXX Gotta get rid of this someday
 
+extern crate gl33;
 use gl33::global_loader::*;
 use gl33::*;
 
 use std::fs::read;
 
 pub struct Shader {
-    program_id: u32,
+    pub id: u32,
 }
 
 impl Shader {
+
     pub fn new(vertex_path: &str, fragment_path: &str) -> Self {
 
         //
@@ -37,30 +39,8 @@ impl Shader {
 
         glCompileShader(vertex_shader); // Compile shader
 
-        // Check for errors // TODO function to get shader error - repeating code
-        let mut success = 0;
-        unsafe {
-            glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &mut success); // Get compile status
-
-            // Check for errors
-            if success == 0 {
-                let mut log: Vec<u8> = Vec::with_capacity(1024); // Buffer for error message
-                let mut len = 0;
-                glGetShaderInfoLog(         // Get possible error message from shader
-                    vertex_shader,
-                    log.capacity() as i32,
-                    &mut len,
-                    log.as_mut_ptr().cast()
-                );
-
-                log.set_len(len as usize); // Trims the log of unused bytes
-                panic!(                                // In case of shader error
-                    "Vertex shader error: {}",         // Error message
-                    std::str::from_utf8(&log).unwrap()
-                )
-            }
-        }
-        
+        // Check for errors
+        check_shader_errors(vertex_shader, "Vertex shader error");
 
         //
         // ─── FRAGMENT SHADER ─────────────────────────────────────────────
@@ -79,29 +59,8 @@ impl Shader {
 
         glCompileShader(fragment_shader); // Compile shader
 
-        // Check for errors // TODO function to get shader error - repeating code
-        let mut success = 0;
-        unsafe {
-            glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &mut success); // Get compile status
-
-            // Check for errors
-            if success == 0 {
-                let mut log: Vec<u8> = Vec::with_capacity(1024); // Buffer for error message
-                let mut len = 0;
-                glGetShaderInfoLog(         // Get possible error message from shader
-                    fragment_shader,
-                    log.capacity() as i32,
-                    &mut len,
-                    log.as_mut_ptr().cast()
-                );
-
-                log.set_len(len as usize); // Trims the log of unused bytes
-                panic!(                                // In case of shader error
-                    "Fragment shader error: {}",       // Error message
-                    std::str::from_utf8(&log).unwrap()
-                )
-            }
-        }
+        // Check for errors
+        check_shader_errors(fragment_shader, "Fragment shader error");
         
 
         //
@@ -114,6 +73,7 @@ impl Shader {
         glAttachShader(id, fragment_shader); // Attach fragment shader to program
         glLinkProgram(id);                   // Link program
 
+        let mut success = 0;
         unsafe {
             glGetProgramiv(id, GL_LINK_STATUS, &mut success); // Get link status
 
@@ -140,19 +100,19 @@ impl Shader {
         glDeleteShader(fragment_shader);
 
         Shader {
-            program_id: id
+            id: id
         }
     }
 
     pub fn use_shader(&self) {
-        glUseProgram(self.program_id);
+        glUseProgram(self.id);
     }
 
     pub fn set_bool(&self, name: &str, value: bool) {
         let name = String::from(name) + "\0";
         unsafe {
             glUniform1i(
-                glGetUniformLocation(self.program_id, name.as_str().as_ptr()),
+                glGetUniformLocation(self.id, name.as_str().as_ptr()),
                 value as i32
             );
         }
@@ -162,7 +122,7 @@ impl Shader {
         let name = String::from(name) + "\0";
         unsafe {
             glUniform1i(
-                glGetUniformLocation(self.program_id, name.as_str().as_ptr()),
+                glGetUniformLocation(self.id, name.as_str().as_ptr()),
                 value
             );
         }
@@ -172,9 +132,37 @@ impl Shader {
         let name = String::from(name) + "\0";
         unsafe {
             glUniform1f(
-                glGetUniformLocation(self.program_id, name.as_str().as_ptr()),
+                glGetUniformLocation(self.id, name.as_str().as_ptr()),
                 value
             );
+        }
+    }
+
+}
+
+// Gets an error from OpenGL and panics with given error message.
+pub fn check_shader_errors(shader: u32, error_msg: &str) {
+    let mut success = 0;
+    unsafe {
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &mut success); // Get compile status
+
+        // Check for errors
+        if success == 0 {
+            let mut log: Vec<u8> = Vec::with_capacity(1024); // Buffer for error message
+            let mut len = 0;
+            glGetShaderInfoLog(         // Get possible error message from shader
+                shader,
+                log.capacity() as i32,
+                &mut len,
+                log.as_mut_ptr().cast()
+            );
+
+            log.set_len(len as usize); // Trims the log of unused bytes
+            panic!(                                // In case of shader error
+                "{0}: {1}",       // Error message
+                error_msg,
+                std::str::from_utf8(&log).unwrap()
+            )
         }
     }
 }
