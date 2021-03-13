@@ -31,6 +31,10 @@ fn main() {
         .unwrap();
     let context = unsafe { context.make_current().unwrap() };
 
+    let window_size = context.window().inner_size();
+    let width = window_size.width as f32;
+    let height = window_size.height as f32;
+
 
     unsafe {
         // Load OpenGL functions globally
@@ -61,6 +65,83 @@ fn main() {
             1, 2, 3,  // Second triangle
         ];
 
+        let vertices: [Vertex; 8] = [
+            [ -0.5,  0.5,  0.5,  1.0, 1.0, 1.0,  1.0, 0.0  ],
+            [  0.5,  0.5,  0.5,  1.0, 1.0, 1.0,  1.0, 0.0  ],
+            [ -0.5, -0.5,  0.5,  1.0, 1.0, 1.0,  1.0, 0.0  ],
+            [  0.5, -0.5,  0.5,  1.0, 1.0, 1.0,  1.0, 0.0  ],
+
+            [ -0.5,  0.5, -0.5,  1.0, 1.0, 0.0,  1.0, 0.0  ],
+            [  0.5,  0.5, -0.5,  1.0, 1.0, 0.0,  1.0, 0.0  ],
+            [ -0.5, -0.5, -0.5,  1.0, 1.0, 0.0,  1.0, 0.0  ],
+            [  0.5, -0.5, -0.5,  1.0, 1.0, 0.0,  1.0, 0.0  ],
+        ];
+
+        let indices: [u32; 36] = [
+            0, 2, 3,
+            0, 1, 3,
+
+            4, 5, 7,
+            4, 6, 7,
+
+            0, 4, 5,
+            0, 1, 5,
+
+            2, 6, 7,
+            2, 3, 7,
+
+            0, 4, 6,
+            0, 2, 6,
+
+            1, 5, 7,
+            1, 3, 7
+        ];
+
+        /*
+        let vertices: [[f32; 5]; 36] = [ // Cube
+            [ -0.5, -0.5, -0.5,  0.0, 0.0 ],
+            [  0.5, -0.5, -0.5,  1.0, 0.0 ],
+            [  0.5,  0.5, -0.5,  1.0, 1.0 ],
+            [  0.5,  0.5, -0.5,  1.0, 1.0 ],
+            [ -0.5,  0.5, -0.5,  0.0, 1.0 ],
+            [ -0.5, -0.5, -0.5,  0.0, 0.0 ],
+
+            [ -0.5, -0.5,  0.5,  0.0, 0.0 ],
+            [  0.5, -0.5,  0.5,  1.0, 0.0 ],
+            [  0.5,  0.5,  0.5,  1.0, 1.0 ],
+            [  0.5,  0.5,  0.5,  1.0, 1.0 ],
+            [ -0.5,  0.5,  0.5,  0.0, 1.0 ],
+            [ -0.5, -0.5,  0.5,  0.0, 0.0 ],
+
+            [ -0.5,  0.5,  0.5,  1.0, 0.0 ],
+            [ -0.5,  0.5, -0.5,  1.0, 1.0 ],
+            [ -0.5, -0.5, -0.5,  0.0, 1.0 ],
+            [ -0.5, -0.5, -0.5,  0.0, 1.0 ],
+            [ -0.5, -0.5,  0.5,  0.0, 0.0 ],
+            [ -0.5,  0.5,  0.5,  1.0, 0.0 ],
+
+            [  0.5,  0.5,  0.5,  1.0, 0.0 ],
+            [  0.5,  0.5, -0.5,  1.0, 1.0 ],
+            [  0.5, -0.5, -0.5,  0.0, 1.0 ],
+            [  0.5, -0.5, -0.5,  0.0, 1.0 ],
+            [  0.5, -0.5,  0.5,  0.0, 0.0 ],
+            [  0.5,  0.5,  0.5,  1.0, 0.0 ],
+
+            [ -0.5, -0.5, -0.5,  0.0, 1.0 ],
+            [  0.5, -0.5, -0.5,  1.0, 1.0 ],
+            [  0.5, -0.5,  0.5,  1.0, 0.0 ],
+            [  0.5, -0.5,  0.5,  1.0, 0.0 ],
+            [ -0.5, -0.5,  0.5,  0.0, 0.0 ],
+            [ -0.5, -0.5, -0.5,  0.0, 1.0 ],
+
+            [ -0.5,  0.5, -0.5,  0.0, 1.0 ],
+            [  0.5,  0.5, -0.5,  1.0, 1.0 ],
+            [  0.5,  0.5,  0.5,  1.0, 0.0 ],
+            [  0.5,  0.5,  0.5,  1.0, 0.0 ],
+            [ -0.5,  0.5,  0.5,  0.0, 0.0 ],
+            [ -0.5,  0.5, -0.5,  0.0, 1.0 ]
+        ];
+        */
 
         //
         // ─── ELEMENT OBJECT BUFFER ───────────────────────────────────────
@@ -163,10 +244,10 @@ fn main() {
         let border_color: [f32; 4] = [ 1.0, 0.0, 0.0, 1.0 ];    
 
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color.as_ptr().cast());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT.0 as i32);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT.0 as i32);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT.0 as i32);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT.0 as i32);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST.0 as i32);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR.0 as i32);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST.0 as i32);
 
         // Loading image
         let car_img = {
@@ -181,6 +262,7 @@ fn main() {
             (img_data, info)
         };
 
+        /*
         let other_img = {
             let img_bytes = include_bytes!("images/img.png");
             let cursor = std::io::Cursor::new(img_bytes);
@@ -192,12 +274,13 @@ fn main() {
             reader.next_frame(&mut img_data).unwrap();
             (img_data, info)
         };
+        */
             
         // Generating texture
         let mut texture1 = 0u32;
-        let mut texture2 = 0u32;
+        //let mut texture2 = 0u32;
         glGenTextures(1, &mut texture1);
-        glGenTextures(1, &mut texture2);
+        //glGenTextures(1, &mut texture2);
 
 
         glActiveTexture(GL_TEXTURE0);
@@ -216,6 +299,7 @@ fn main() {
         glGenerateMipmap(GL_TEXTURE_2D);
         
         
+        /*
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
         glTexImage2D(
@@ -230,6 +314,7 @@ fn main() {
             other_img.0.as_ptr().cast() // Image data
         );
         glGenerateMipmap(GL_TEXTURE_2D);
+        */
 
 
         //
@@ -299,8 +384,9 @@ fn main() {
                 //
 
                 Event::RedrawEventsCleared => {
-                    // Clear color buffer
-                    glClear(GL_COLOR_BUFFER_BIT);                    
+                    // Clear buffers
+                    glEnable(GL_DEPTH_TEST); 
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                    
                     
                     shader_program.use_shader();
 
@@ -310,39 +396,54 @@ fn main() {
                     //
 
                     shader_program.set_int("texture1", 0);
-                    shader_program.set_int("texture2", 1);
+                    //shader_program.set_int("texture2", 1);
                     
 
                     //
                     // TRANSFORMATION
                     //
 
-                    // Transformation base => identity matrix
-                    let base = Matrix4::<f32>::identity();
-                    
                     // Rotation around Z axis Pi/2 rad (90°)
-                    let rotation = Rotation3::from_axis_angle(
-                        &Vector3::z_axis(),
-                        std::f32::consts::PI / 2.0
+                    let mut rotation = Rotation3::from_axis_angle(
+                        &Vector3::x_axis(),
+                        20.0 * (std::f32::consts::PI / 180.0) // -30° to rad
+                    ).to_homogeneous();
+                    rotation *= Rotation3::from_axis_angle(
+                        &Vector3::y_axis(),
+                        t0.elapsed().as_secs_f32()
                     ).to_homogeneous();
                     
                     // Scaling
                     let scale = Matrix4::new_scaling(1.0);
 
                     // Translation
-                    //let view_matrix = Matrix4::new_nonuniform_scaling(&Vector::from([4.0, 4.0, 0.0]));
-                    let x = t0.elapsed().as_secs_f32().sin() * 0.5;
-                    let y = t0.elapsed().as_secs_f32().cos() * 0.5;
-                    let translation = Matrix4::new_translation(&Vector::from([x, y, 0.0]));
+                    let translation = Matrix4::new_translation(&Vector::from([0.0, 0.0, -2.0]));
+
+                    // Projection
+                    /*let projection_matrix = Matrix4::new_orthographic(
+                        width / 2.0,
+                        -width / 2.0,
+                        height / 2.0,
+                        -height / 2.0,
+                        0.1,
+                        100.0,
+                    );*/
+                    let projection_matrix = Matrix4::new_perspective(width/height, 45.0, 0.1, 100.0);
 
                     // Together
-                    let final_transformation = base * rotation * scale * translation;//; * view_matrix);
-
+                    let model = rotation * scale;
+                    let view = translation;
+                    let projection = projection_matrix;
+                    let final_transformation = projection * view * model;
+                    
                     let transform_location = glGetUniformLocation(shader_program.id, "transform\0".as_ptr());
-                    if transform_location == -1 { panic!("damn") }
+                    if transform_location == -1 { panic!("Transform uniform not found!") }
                     glUniformMatrix4fv(transform_location, 1, 0, final_transformation.as_ptr());
 
 
+                    //
+                    // DRAWING
+                    //
 
                     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
                     glDrawElements(
@@ -351,6 +452,7 @@ fn main() {
                         GL_UNSIGNED_INT,      // Type of indices
                         0 as *const _         // Offset
                     );
+                    //glDrawArrays(GL_TRIANGLES, 0, vertices.len() as i32);
 
 
                     // ... and finally swap the buffers
