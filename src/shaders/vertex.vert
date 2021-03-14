@@ -9,9 +9,10 @@ out vec2 texture_coords;
 out vec3 pos_color;
 
 uniform mat4 transform;
+uniform mat4 offset;
 
 void main() {
-    gl_Position = transform * vec4(position, 1.0);
+    gl_Position = transform * offset * vec4(position, 1.0);
     vertex_color = vec4(color, 1.0);
     texture_coords = i_texture_coords;
     pos_color = position;
